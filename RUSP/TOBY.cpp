@@ -22,32 +22,45 @@ TOBY::TOBY(byte NET_STAT, byte CELL_CTS, byte CELL_RTS, byte CELL_RESET, byte CE
 
 void TOBY::init(){	//Some basic setup for TOBY
 	Serial1.begin(115200); delay(500);	//57600 was TOBY, 115200 is LARA. Other options: 230400
-	//Serial1.write("AT+IPR=115200"); Serial.write(13); delay(1000);
 	Serial1.write("AT"); Serial.write(13); delay(1000);
 	Serial1.write("AT+CMEE=2"); Serial1.write(13); delay(100);	//Turn on verbose error reporting
 	Serial1.write("AT+CREG=1"); Serial1.write(13); delay(100);	//Turn on network registration URCs
 	Serial1.write("AT+UCALLSTAT=1"); Serial1.write(13); delay(100);	//Turn on call status reporting URCs
 	//Serial1.write("AT+UMGC=1,12,16000"); Serial1.write(13); delay(200);	//Set microphone digital gain
-	Serial1.write("AT+CLVL=80"); Serial1.write(13); delay(200);	//Set call volume
-	Serial1.write("AT+UDCONF=31,1"); Serial1.write(13); delay(200);	//Turn on DTMF tones. 31,1 = local only, 31,2 = in-band, 31,0 = off.
+	//Serial1.write("AT+CLVL=80"); Serial1.write(13); delay(200);	//Set call volume
+	//Serial1.write("AT+UDCONF=31,1"); Serial1.write(13); delay(200);	//Turn on DTMF tones. 31,1 = local only, 31,2 = in-band, 31,0 = off.
 }
 
-void TOBY::setCODEC(){
+void TOBY::firstBOOT(){	//deprecated in favor of running
 	Serial1.write(13);
+	//Serial1.write("AT+CSGT=1,\"LARA is ON and READY\""); Serial1.write(13);delay(200);
 	Serial1.write("AT+UEXTDCONF=0,1"); Serial1.write(13); delay(500);	//Autoconfigure MAX9860 codec. Only needs to be done one time ever, as the settings are saved to NVM, although I don't know if the NVM is in the CODEC or in the uBlox module.
-	Serial1.write("AT+CFUN=16"); Serial1.write(13); delay(1000);	//Reset uBlox module.
-	Serial.println(F("Configured CODEC"));
+	//or
+	//Serial1.write("AT+UI2S=14,1,0,3,0"); Serial1.write(13); delay(50);	//part of manual configuration of MAX9860 codec. Only needs to be done one time ever, as the settings are saved to NVM, although I don't know if the NVM is in the CODEC or in the uBlox module.
+	//Serial1.write("AT+USPM=1,0"); Serial1.write(13); delay(50);	//part of manual configuration of MAX9860 codec. Only needs to be done one time ever, as the settings are saved to NVM, although I don't know if the NVM is in the CODEC or in the uBlox module.
+	//Serial1.write("AT+UMCLK=2,0"); Serial1.write(13); delay(50);	//part of manual configuration of MAX9860 codec. Only needs to be done one time ever, as the settings are saved to NVM, although I don't know if the NVM is in the CODEC or in the uBlox module.
+	//Serial1.write("AT+UI2CO=1,0,0,0x10,0"); Serial1.write(13); delay(50);	//part of manual configuration of MAX9860 codec. Only needs to be done one time ever, as the settings are saved to NVM, although I don't know if the NVM is in the CODEC or in the uBlox module.
+	//Serial1.write("AT+UI2CW=\"0000000010A000303000063300500000008A\",18"); Serial1.write(13); delay(50);	//part of manual configuration of MAX9860 codec. Only needs to be done one time ever, as the settings are saved to NVM, although I don't know if the NVM is in the CODEC or in the uBlox module.
+	//Serial1.write("AT+UI2CC"); Serial1.write(13); delay(50);	//part of manual configuration of MAX9860 codec. Only needs to be done one time ever, as the settings are saved to NVM, although I don't know if the NVM is in the CODEC or in the uBlox module.
+
+//	Serial1.write("AT+CFUN=16"); Serial1.write(13); delay(1000);	//Reset uBlox module.
+	Serial.println(F("First-boot configuration complete"));
 }
 
-void TOBY::refresh(){
+void TOBY::refresh(){	//was used for debugging
 	Serial1.write(13); delay(200);
 	Serial1.write("AT+CMEE=2"); Serial1.write(13); delay(200);	//Turn on verbose error reporting
 	Serial1.write("AT+CREG=1"); Serial1.write(13); delay(50);	//Turn on network registration URCs
 }
 
 void TOBY::powerdown(){
-	//Serial1.write("AT+CPWROFF"); Serial1.write(13); delay(50);	
-	//while (digitalRead(_CELL_PWR_DET) == HIGH){}	//wait for CELL_PWR_DET to go LOW
+	Serial1.write("AT+CPWROFF"); Serial1.write(13); delay(50);
+	_stopwatch_shutdown = millis();
+	while (digitalRead(_CELL_PWR_DET) == HIGH){ //wait for CELL_PWR_DET to go LOW
+		if (millis() - _stopwatch_shutdown > 5000){	//Timeout
+			break;
+		}
+	}	
 }
 
 void TOBY::sleep(){
@@ -155,8 +168,8 @@ char TOBY::rx(){
 			_maxchars = n;
 			n = 0;
 			_NewData = true;
-			//Serial.print(rc);
-			Serial.println(_ReceivedChars[64]);
+			Serial.print(rc);
+			//Serial.println(_ReceivedChars[64]);
 			//return _ReceivedChars;//[64];
 		}
 	}

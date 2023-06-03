@@ -7,7 +7,7 @@ class TOBY {
 		TOBY(byte NET_STAT, byte CELL_CTS, byte CELL_RTS, byte CELL_RESET, byte CELL_PWR_DET);
 		char rx();
 		void init();
-		void setCODEC();
+		void firstBOOT();
 		void refresh();
 		bool ringCheck();
 		char signal(int digitRequest);
@@ -31,6 +31,7 @@ class TOBY {
 		int _maxchars;
 		int _sigStrength;
 		unsigned long _stopwatch_ring;
+		unsigned long _stopwatch_shutdown;
 		byte _NET_STAT;
 		byte _CELL_CTS;
 		byte _CELL_RTS;

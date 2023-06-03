@@ -39,11 +39,11 @@
 #define EN_12V 33
 #define EN_OUTAMP A15
 #define CELL_ON A0
-#define CHIPSELECT 24
+#define CHIPSELECT 24	//SD card CS
 
 //Define input pins
-#define SW_C 82
-#define SW_Hook 83
+#define SW_C 15
+#define SW_Hook 14
 #define SW_alpha 10
 #define SW_beta 12
 #define SW_lambda 11
@@ -75,7 +75,7 @@
 #define bellMax 55
 #define bellPanDwell 100
 #define bellDutyDelay 68
-#define bellDelay 70	//sets bell hammer frequency
+#define bellDelay 47	//sets bell hammer frequency
 
 //For SD config and contacts management. String types are required by a copied section of code. Switching to char arrays will require work.
 int battDisplay = 0;
@@ -120,9 +120,10 @@ bool Alt = false;
 bool Speed = false;	//flag for speed dial mode (used in function called by rotary ISR)
 bool newNum = false;
 bool ledToggle = true;	//used to rapidly alternate certain LEDs on and off 
-bool bellFlag = true;
+bool dingFlag = true;
 bool bellOn = false;
 bool bellCalOn = false;
+bool ringDemo = false;
 int ringCnt = 0;
 int ledCounter = 0;	//also used for the above
 int bellDelayCounter = 0;	//for the bell calibration function

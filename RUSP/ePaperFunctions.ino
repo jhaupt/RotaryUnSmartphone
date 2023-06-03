@@ -4,6 +4,7 @@ int epd_displayContacts(int n){
 	int col = 0;
 	int row = 12;
 	int ctcID = 1;
+	n = n-2;	//Don't understand why this is needed, again.
 	eink.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
 	eink.setFont();	//default font
 	eink.firstPage();	//this function is called before every time ePaper is updated. Has nothing to do with what I call page numbers in this section of the program.
@@ -41,15 +42,17 @@ void epd_splash(){
 	do {
 		eink.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
 		eink.setFont(&FreeSans9pt7b);
-		eink.setCursor(24, 35); 
+		eink.setCursor(12, 30); 
+		eink.print("R");
+		eink.setCursor(31, 35); 
 		eink.print("o");
-		eink.setCursor(43, 40); 
+		eink.setCursor(50, 40); 
 		eink.print("t");
-		eink.setCursor(62, 45); 
+		eink.setCursor(69, 45); 
 		eink.print("a");
-		eink.setCursor(81, 50); 
+		eink.setCursor(88, 50); 
 		eink.print("r");
-		eink.setCursor(100, 55); 
+		eink.setCursor(107, 55); 
 		eink.print("y");
 		eink.setFont(&FreeSerifItalic9pt7b);
 		eink.setCursor(15, 70); 

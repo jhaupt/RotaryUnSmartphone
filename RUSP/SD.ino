@@ -3,7 +3,6 @@ void SDinit(){
 		Serial.println("SD Card Found");
 	} else {
 		Serial.println("No SD Card");
-		toby.setCODEC();	//Autoconfigure the CODEC when no SD card.
 	}
 
 	SD.begin(CHIPSELECT);	//Is this eating a lot of power?
@@ -74,7 +73,6 @@ void SDreadAll(){
 //COPIED CODE ALERT
 //Thanks to arduinogetarted.com. What's below was more or less copied from https://arduinogetstarted.com/tutorials/arduino-read-config-from-sd-card
 void SDgetConfig(){
-	firstBoot = SD_findInt(F("firstBoot"));
 	battDisplay = SD_findInt(F("battDisplay"));
 	areaCode = SD_findInt(F("areaCode"));
 	
@@ -85,8 +83,6 @@ void SDgetConfig(){
 	//bellMin = SD_findInt(F("bellMin"));
 	//bellMax = SD_findInt(F("bellMax"));
 
-	Serial.print(F("firstBoot = "));
-	Serial.println(firstBoot);
 	Serial.print(F("battDisplay = "));
 	Serial.println(battDisplay);
 	Serial.print(F("Local area code = "));

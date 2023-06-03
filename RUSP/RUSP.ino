@@ -48,7 +48,9 @@ void setup(){
 	pinMode(LL_OE, OUTPUT);
 	pinMode(EN_3V3, OUTPUT);
 	pinMode(EN_12V, OUTPUT);
+	pinMode(EN_OUTAMP, OUTPUT);
 	pinMode(CELL_ON, OUTPUT);
+	pinMode(CHIPSELECT, OUTPUT); //SD card CS
 
 	// Define input pin functions
 	pinMode(SW_ROTARY, INPUT_PULLUP); 	//Input handled by ISR, but here we set the pullup resistor
@@ -66,7 +68,7 @@ void setup(){
 	pinMode(CHG_STAT, INPUT);
 	
 	digitalWrite(LED_BELL, HIGH);
-	Serial.begin(115200);
+	Serial.begin(115200);	//try different values
 
 	digitalWrite(LL_OE, HIGH);
 	digitalWrite(EN_3V3, HIGH);
@@ -75,6 +77,7 @@ void setup(){
 	digitalWrite(CELL_ON, HIGH); delay(1000);	//Turn on LARA
 	digitalWrite(CELL_ON, LOW); 
 	digitalWrite(LED_STAT, HIGH);		//Indicate waiting for LARA to power on
+	//digitalWrite(EN_OUTAMP, HIGH);
 	while (digitalRead(A2) == LOW){
 	}	//wait for CELL_PWR_DET to go high. !!! Needa timeout here!
 
@@ -92,23 +95,21 @@ void setup(){
 	n = 0;    //Starting phone number digit value is 0
 	k = 0;    //Starting phone number digit position is 0
 	oled.init(); 
-	oled.print("Finishing boot",0,30);
-	oled.clear();
+	digitalWrite(EN_12V, HIGH);
 	Serial.println("startup complete");
 	digitalWrite(LED_BELL, LOW);
+	//SPI.begin(); //handled elsewhere
 }
 
 void loop(){
-	//toby.rx();	//check for and read UART data from TOBY. Use with serialPassthroughOneWay(), OR, use serialPassthrough() by itself.
-	//serialPassthroughOneWay();
+	//toby.rx();	//check for and read UART data from TOBY. Use with serialPassthroughOut(), OR, use serialPassthrough() by itself.
+	//serialPassthroughOut();
 	serialPassthrough();	//Expose TOBY's UART-in to serial console
 
-	//
 	rotary_accumulator();	//Counts pulses from rotary and does debounce. Pulses are initiated by ISR_rotary().
 	oled.autoClear(50000);	//Clear the OLED automatically after given time in ms.
 	pNumAutoClear(70000);
-	ringer(); //Check for incomming calls
-	digitalWrite(EN_12V, HIGH);
+	ringer_daemon(); 	//Check for incomming call and manage the call alert bell and LEDs
 
 	if (digitalRead(OFFSIGNAL) == LOW){
 		shutdown();
@@ -124,11 +125,12 @@ void loop(){
 		} 
 		else {
 			toby.hangup();		//HANG UP
+			ringDemo = false;	//stop the ring demo, if it's on.
 			oled.clear();
 			//oled.print("Call ended",0,30);		//FIX to only show if UCALLSTAT shows active
 		}
 		delay(500);
-		if (digitalRead(SW_Hook) == LOW){ 	//PLACE CALL
+		if (digitalRead(SW_Hook) == LOW){ 	//PLACE CALL. NOTE: Speed dial using SW_Hook handled in rotary_accumulator() in Helpers.ino.
 			oled.clear();
 			oled.print("Dialing out",0,30);
 			if (digitalRead(SW_Local) == LOW){
@@ -165,7 +167,7 @@ void loop(){
 		else {
 			testRing = false;
 		}*/
-		//epd_splash();
+		epd_splash();
 	}
 
 	if (digitalRead(SW_beta) == LOW){	

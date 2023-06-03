@@ -7,34 +7,34 @@ void serialPassthrough(){	//Taken from Erik Nyquist's example
 	}
 }
 
-void serialPassthroughOneWay(){	
+void serialPassthroughOut(){	
 	if (Serial.available()) {     //Pass anything entered in Serial off to the TOBY 
 		Serial1.write(Serial.read());   
 	}
 }
 
-void ISR_rotary(){	//Interrupt Service Routine for the rotary dial's "pulse" switch, which is a tied-to-GND normlally-open limit switch that rolls against a cam. 	
-	interrupt_rot = millis();	//record time of interrupt
-	pulseOn = true;
-	spinning = true;
-	delay(10);
-	digitalWrite(LED_STAT, HIGH);
-}
-
 void ISR_hall(){	
+	spinning = true;
 	digitalWrite(LED_FILAMENT, HIGH);
-	delay(500);
+	delay(10);
 	digitalWrite(LED_FILAMENT, LOW);
 }
 
+void ISR_rotary(){	//Interrupt Service Routine for the rotary dial's "pulse" switch, which is a tied-to-GND normlally-open limit switch that rolls against a cam. 	
+	interrupt_rot = millis();	//record time of interrupt
+	pulseOn = true;
+}
 
 void rotary_accumulator(){ 	// Accumulates digits from rotary dial
-	if (pulseOn == true && (millis() - interrupt_rot  > 30)) {	//Debounce detection
+	if (spinning == true && pulseOn == true && (millis() - interrupt_rot  > 30)) {	//Debounce detection
 		pulseOn = false;
-		digitalWrite(LED_STAT, LOW);
+		digitalWrite(LED_STAT, HIGH);
+		digitalWrite(LED5A, HIGH);
+		digitalWrite(LED5R, HIGH);
+		delay(10);
 		n++;
 		if (digitalRead(SW_Alt) == LOW){	//See if we're in alt mode 
-			if (digitalRead(SW_Fn) == LOW){	//See if the Function button is depressed while in alt mode
+			if (digitalRead(SW_Hook) == LOW){	//See if the Function button is depressed while in alt mode
 				Speed = true;
 			} else {
 				Alt = true;
@@ -44,16 +44,15 @@ void rotary_accumulator(){ 	// Accumulates digits from rotary dial
 			Fn = true;
 		} 
 	}
+	digitalWrite(LED_STAT, LOW);
+	digitalWrite(LED5A, LOW);
+	digitalWrite(LED5R, LOW);
 	//ACCUMULATE PULSES
 	if (spinning == true && (millis() - interrupt_rot > 700)){	//If more than this many ms have elapsed since the last pulse, assume a number is complete
-		if (n % 2 != 0){ 	//Use modulo to see if number is odd. Because we're counting up *and* down, the final result has to be even. If it's not, assume a pulse was missed and add one. 
-			n++;
+		PNumber[k] = n-2; //X: THIS NUMBER sometimes depends on the build?
+		if (PNumber[k] >= 10){	//The tenth position on the dial is 0
+			PNumber[k] = 0;
 		}
-		n = n/2;	//Divide by 2 to get the right number. Above conditional asures n is even.
-		if (n >= 10){	//The tenth position on the dial is 0
-			n = 0;
-		}
-		PNumber[k] = n;
 		oled.clear();
 		for (int j = 0; j <= k; j++){	//DISPLAY ON OLED
 			//Serial.print(j);
@@ -63,15 +62,20 @@ void rotary_accumulator(){ 	// Accumulates digits from rotary dial
 
 		Serial.println("");
 		if (Fn == true){
-			////ADD STAR/POUND DIAL FUNCTIONS
+			////ADD STAR/POUND/Ring demo DIAL FUNCTIONS
 			Fn = false;
-			if (n == 2){
+			if (PNumber[k] == 1){
 				oled.clear();
 				oled.print("*",0,30);
 			}
-			else if (n == 1){
+			else if (PNumber[k] == 2){
 				oled.clear();
 				oled.print("#",0,30);
+			}
+			else if (PNumber[k] == 3){
+				oled.clear();
+				oled.print("Ring Demo",0,30);		//FIX to only show if UCALLSTAT shows active
+				ringDemo = true;
 			}
 		}
 		if (Alt == true){
@@ -84,17 +88,17 @@ void rotary_accumulator(){ 	// Accumulates digits from rotary dial
 			SDgetContact((pg*9)-9+n);	//Get contact phone number based on the page number from the last time epd_showContacts was called and the rotary dial input
 			ClearPNum();   //Clear whatever number has been entered so far
 			k = kc;			//Set the current max phone number index to be that of the Contact Numbre
-			for (int j = 0; j <= (k-3); j++){	//FIX: I don't understand why I need to subtract from k 	
+			for (int j = 0; j <= (k-2); j++){	//Y
 				PNumber[j] = CNumber[j];	//Set current buffered phone number to be the contact number that SDgetContact provided 
 				Serial.print(PNumber[j]);
 			}
 			Serial.println("");
 			oled.clear();
-			for (int j = 0; j <= k-3; j++){	//DISPLAY RECALLED CONTACT PHONE NUMBER ON OLED
+			for (int j = 0; j <= k-2; j++){	//Y
+
 				Serial.print(PNumber[j]);
 				oled.print(itoa(PNumber[j],cbuf,10),(j*lspace),30); //A KLUGE. Should be able to send the whole number as a char array straight to oled.print and let that handle the character spacing. Instead, I'm using the loop index to advance the characters
 			}
-			k = k-2;	//More annoying incomprehensible corrections
 			toby.call(PNumber, k);
 			Speed = false;
 		}
@@ -105,6 +109,8 @@ void rotary_accumulator(){ 	// Accumulates digits from rotary dial
 		stopwatch_pNum = millis();
 		n = 0;	//reset digit
 		spinning = false;
+		digitalWrite(LED5A, LOW);
+		digitalWrite(LED5R, LOW);
 	}
 }
 
@@ -220,9 +226,7 @@ void ringPattern(){
 	if (ledCounter <= ledRingPattern_t1){
 		blinkRingLEDs();
 		if (bellOn == true){	//ring bell only every other cycle
-			if (readBatt() > 55){
-				ringBell();
-			}
+			dingBell();
 		}	
 	} 
 	else if (ledCounter > ledRingPattern_t1 && ledCounter <= ledRingPattern_t2){
@@ -234,9 +238,7 @@ void ringPattern(){
 	else if (ledCounter > ledRingPattern_t2 && ledCounter <= ledRingPattern_t3){
 		blinkRingLEDs();
 		if (bellOn == true){
-			if (readBatt() > 55){
-				ringBell();
-			}
+			dingBell();
 		}
 	}
 	else if (ledCounter > ledRingPattern_t3 && ledCounter<= ledRingPattern_t4){
@@ -252,25 +254,29 @@ void ringPattern(){
 		} else {
 			bellOn = true;
 		}
+		ringCnt++;
+		if (ringCnt > 3){
+			ringDemo = false;
+		}
 	}
 }
 
-void ringBell(){
+void dingBell(){	//Pulse the bell hammer (once per call)
 	bellDelayCounter++;
 	if (bellDelayCounter == bellDutyDelay){ 	//Turn solenoid off for part of the cycle
 		digitalWrite(RINGER_P, LOW);
 		digitalWrite(RINGER_N, LOW);
 	}
 	if (bellDelayCounter >= bellDelay){	//Turn solenoid on every full cycle (where bellDelayCounter == the bellDelay
-		if (bellFlag == true){			//...and the solenoid polarity will depend on the previous state
+		if (dingFlag == true){			//...and the solenoid polarity will depend on the previous state
 			digitalWrite(RINGER_P, HIGH);
 			digitalWrite(RINGER_N, LOW);
-			bellFlag = false;
+			dingFlag = false;
 		}
 		else {
 			digitalWrite(RINGER_P, LOW);
 			digitalWrite(RINGER_N, HIGH);
-			bellFlag = true;
+			dingFlag = true;
 		}
 		bellDelayCounter = 0;
 	}
@@ -284,7 +290,7 @@ void ringBell(){
 	}
 
 	if (millis() < stopwatch_bellCal + bellPanDwell){
-		ringBell();
+		dingBell();
 	}
 	else if (bellDelay > bellMax) {	//finish calibration routine at this value for bellDelay 
 		bellDelay = bellMin;
@@ -297,44 +303,25 @@ void ringBell(){
 	}
 }*/
 
-void ringer(){
-	if(toby.ringCheck() == true){
+void ringer_daemon(){
+	if(toby.ringCheck() == true || ringDemo == true){
 		ringPattern();
 		if (ringCnt == 0 || ringCnt == 1){	//Run this twice per ring. For some reason the very first time it runs the text is garbled. 
-			dispCallID();
+			//dispCallID();		//doesn't work with ringDemo. Uncomment for normal use.
 		}
-		ringCnt++;
 	}
 	else{
 		digitalWrite(LED_FILAMENT, LOW);
 		digitalWrite(LED_BELL, LOW);
 		digitalWrite(RINGER_P, LOW);
 		digitalWrite(RINGER_N, LOW);
-		ringCnt = 0;
-	}
-}
-
-void testRinger(){
-	if(testRing == true){
-		ringPattern();
-		if (ringCnt == 0 || ringCnt == 1){	//Run this twice per ring. For some reason the very first time it runs the text is garbled. 
-			oled.clear();
-			oled.print("6313452124",0,30);
-		}
-		ringCnt++;
-	}
-	else{
-		digitalWrite(LED_FILAMENT, LOW);
-		digitalWrite(LED_BELL, LOW);
-		digitalWrite(RINGER_P, LOW);
-		digitalWrite(RINGER_N, LOW);
-		oled.clear();
 		ringCnt = 0;
 	}
 }
 
 void shutdown(){
-	//Serial.println("Shutdown signal sent. Waiting for cell powerdown...");
+	Serial.println("Shutdown signal sent. Waiting for cell powerdown...");
+	oled.clear();
 	oled.print("Turning off",0,30);
 	digitalWrite(LED1A, HIGH);
 	toby.powerdown();

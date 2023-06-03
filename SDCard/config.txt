@@ -1,10 +1,8 @@
 myString_1=Hello	
 myString_2=testing123 
-
-firstBoot=1
+myInt_2=23	
 
 //0 = percent, 1 = mV
-battDisplay=0	
+battDisplay=1
 
 areaCode=631
-myInt_2=23	
